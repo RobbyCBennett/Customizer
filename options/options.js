@@ -33,35 +33,51 @@ if (location.hash != '#popup') {
 
 // Textarea
 
-function insertTab(textarea) {
-	const cursor = textarea.selectionStart;
-	textarea.setRangeText('\t', cursor, cursor, 'end');
-}
+// Textarea text insertion & cursor movement
+function insertText(text, field=null, move=0) {
+	// Insert text
+	document.execCommand('insertText', false, text);
 
-// Key pressed: prevent changing focus
-function preventDefaultTab(e) {
-	if (e.keyCode == TAB) {
-		e.preventDefault();
-		insertTab(e.target);
-		codeChanged(e);
+	// Move before the selection
+	if (move) {
+		const cursor = field.selectionStart + move;
+		field.setSelectionRange(cursor, cursor);
 	}
 }
 
-// Code changed: auto indent
+// Textarea code changed: auto indent
 const indent = /^[\t ]/;
 const block = /{$/;
+let enterFromUser = true;
 function codeChanged(e) {
+	const field = e.target;
+
 	// Enter pressed
 	if (e.inputType == 'insertLineBreak' || e.inputType == 'insertText' && !e.data) {
-		// Get text of previous line
-		const cursor = e.target.selectionStart;
-		const untilCursor = e.target.value.slice(0, cursor);
-		const prevLine = untilCursor.match(/(.*)\n$/)[1];
+		if (enterFromUser) {
+			// Get text of previous line
+			const cursor = field.selectionStart;
+			const untilCursor = field.value.slice(0, cursor);
+			const afterCursor = field.value.slice(cursor, cursor+1)
+			const prevLine = untilCursor.match(/(.*)\n$/)[1];
 
-		// See if the new line should be indented
-		if (indent.test(prevLine) || block.test(prevLine))
-			insertTab(e.target);
+			// See if } should be on a new line
+			if (afterCursor == '}') {
+				insertText('\t');
+				enterFromUser = false;
+				insertText('\n', field, -1);
+				enterFromUser = true;
+			}
+
+			// See if the new line should be indented
+			else if (indent.test(prevLine) || block.test(prevLine))
+				insertText('\t');
+		}
 	}
+
+	// { pressed
+	else if (e.inputType == 'insertText' && e.data == '{')
+		insertText('}', field, -1);
 
 	saveSite(e);
 }
@@ -148,7 +164,6 @@ async function loadSites(keyToSelect=null) {
 		textarea.dataset.key = key;
 		textarea.value = rules[key];
 		textarea.oninput = codeChanged;
-		textarea.onkeydown = preventDefaultTab;
 		details.appendChild(textarea);
 
 		// Focus on textarea
