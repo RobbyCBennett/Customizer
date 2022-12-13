@@ -193,6 +193,12 @@ input[type='search']:hover, input[type='search']:focus {
 
 
 /* Details & Summary */
+#sites {
+	margin-top: var(--margin);
+}
+.site .option {
+	margin-top: 0;
+}
 details summary {
 	list-style: none;
 	position: relative;
