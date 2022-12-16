@@ -250,13 +250,20 @@ details summary {
 	position: relative;
 }
 details summary::after {
-	content: '<';
+	content: '';
+	width: var(--buttonW);
+	height: var(--optionH);
+	background-color: var(--hover);
+	background-image: url('/assets/expand.svg');
+	background-position: center;
+	background-size: 37.5%;
+	background-repeat: no-repeat;
+	background-color: transparent;
 	position: absolute;
-	right: calc(var(--margin) * 1.25);
-	transform: rotate(-90deg);
+	right: 0;
 }
 details[open] summary::after {
-	content: '>';
+	transform: rotate(180deg);
 }
 
 
