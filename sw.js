@@ -1,32 +1,28 @@
 const baseUrlPattern = /^https?:\/\/(www.)?(.+?[^\/:])(?=[?\/]|$)/;
-
-async function editThisSite() {
+async function getCssBaseUrl() {
 	// Get current tab
 	const currentTab = (await chrome.tabs.query({
 		active: true,
 		currentWindow: true
 	})).pop();
-
-	// No valid current tab
-	if (! currentTab) {
-		chrome.runtime.openOptionsPage();
+	if (! currentTab)
 		return;
-	}
 
 	// Get the base URL
 	const baseUrl = currentTab.url.match(baseUrlPattern);
-
-	// Not a valid URL
-	if (! baseUrl) {
-		chrome.runtime.openOptionsPage();
+	if (! baseUrl)
 		return;
-	}
 
 	// Append 'css:' to the beginning
-	const cssBaseUrl = `css:${baseUrl[2]}`;
+	return `css:${baseUrl[2]}`;
+}
+
+async function editThisSite() {
+	const cssBaseUrl = await getCssBaseUrl();
 
 	// Remember the URL currently being edited
-	await chrome.storage.local.set({ url: cssBaseUrl });
+	if (cssBaseUrl)
+		await chrome.storage.local.set({ url: cssBaseUrl });
 
 	// Open options pagee
 	chrome.runtime.openOptionsPage();

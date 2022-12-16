@@ -161,15 +161,15 @@ function saveSite(e) {
 }
 
 // Load site rules
-async function loadSites(keyToSelect=null) {
+async function loadSites(keyToAdd=null) {
 	// Get all rules
 	const rules = await chrome.storage.local.get();
 	const removing = [];
 
 	// Add the current page
-	const addingPage = keyToSelect && !(keyToSelect in rules);
+	const addingPage = keyToAdd && !(keyToAdd in rules);
 	if (addingPage)
-		rules[keyToSelect] = '';
+		rules[keyToAdd] = '';
 
 	// Get the keys, which may already be sorted
 	const keys = addingPage ? Object.keys(rules).sort() : Object.keys(rules);
@@ -179,7 +179,7 @@ async function loadSites(keyToSelect=null) {
 	container.innerHTML = '';
 	for (const key of keys) {
 		// Skip unused rules and mark for removal
-		if (key != keyToSelect && !rules[key]) {
+		if (key != keyToAdd && !rules[key]) {
 			removing.push(key);
 			continue;
 		}
@@ -210,11 +210,9 @@ async function loadSites(keyToSelect=null) {
 		textarea.oninput = codeChanged;
 		details.appendChild(textarea);
 
-		// Focus on textarea
-		if (key == keyToSelect) {
+		// Open details and focus on textarea
+		if (key == keyToAdd)
 			details.open = true;
-			textarea.focus();
-		}
 	}
 
 	// Remove unused keys
@@ -233,22 +231,49 @@ function focusSiteRules(e) {
 
 
 
+// URL
+
+const baseUrlPattern = /^https?:\/\/(www.)?(.+?[^\/:])(?=[?\/]|$)/;
+async function getBaseUrl() {
+	// Get current tab
+	const currentTab = (await chrome.tabs.query({
+		active: true,
+		currentWindow: true
+	})).pop();
+	if (! currentTab)
+		return;
+
+	// Get the base URL
+	const baseUrl = currentTab.url.match(baseUrlPattern);
+	if (! baseUrl)
+		return;
+
+	return baseUrl[2];
+}
+
+
+
+// Main
 
 let prevUrlEditing = null;
 async function main() {
 	// Get current URL being edited
-	let currUrlEditing = (await chrome.storage.local.get('url')).url;
+	let currUrlEditing;
+	// Popup
+	if (location.hash == '#popup') {
+		const baseUrl = await getBaseUrl();
+		currUrlEditing = baseUrl ? `css:${baseUrl}` : null;
+	}
+	// Not popup
+	else
+		currUrlEditing = (await chrome.storage.local.get('url')).url;
 
 	// Skip if the URL being edited is the same
 	if (currUrlEditing && currUrlEditing == prevUrlEditing)
 		return;
 	prevUrlEditing = currUrlEditing;
 
-	// Collapse all for the popup
-	if (location.hash == '#popup')
-		currUrlEditing = null;
-
-	// Load the CSS for the sites
+	// Load the UI to edit CSS for the sites
 	loadSites(currUrlEditing);
 
 	// Forget the URL being edited
