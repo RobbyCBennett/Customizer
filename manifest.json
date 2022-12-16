@@ -20,6 +20,7 @@
 		"open_in_tab": true
 	},
 	"permissions": [
+		"tabs",
 		"storage"
 	],
 	"content_scripts": [
@@ -29,5 +30,16 @@
 			"js": ["/content.js"],
 			"run_at": "document_start"
 		}
-	]
+	],
+	"background": {
+		"service_worker": "/sw.js"
+	},
+	"commands": {
+		"bigOptions": {
+			"description": "Big options page"
+		},
+		"editThisSite": {
+			"description": "Edit this site"
+		}
+	}
 }

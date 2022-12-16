@@ -13,6 +13,37 @@ function clickAndKeypress(el, fn) {
 	el.onkeypress = fn;
 }
 
+// Link: Keyboard shortcuts
+async function keyboardShortcuts(e) {
+	// Skip other keys or right click
+	if ((e.code && e.code != 'Enter') || e.button == 2)
+		return;
+
+	// Tab createData
+	const url = 'chrome://extensions/shortcuts';
+	const middleClick = e.button == 1;
+	const newWindow = e.shiftKey && ! e.ctrlKey && ! middleClick;
+
+	// New window
+	if (newWindow) {
+		// Create tab in new window
+		chrome.windows.create({ url: url });
+	}
+	// Same window
+	else {
+		// Query the current tab in order to create a new adjacent tab
+		const tabs = await chrome.tabs.query({active: true});
+		const index = tabs[0].index + 1;
+
+		// Tab createData
+		const active = (! middleClick && ! (e.ctrlKey ^ e.shiftKey)) || (middleClick && e.shiftKey);
+
+		// Create tab
+		chrome.tabs.create({ url: url, index: index, active: active });
+	}
+}
+clickAndKeypress(document.getElementById('keyboardShortcuts'), keyboardShortcuts);
+
 // Link: Big options page
 function bigOptions(e) {
 	// Skip other keys or right click
@@ -25,9 +56,8 @@ function bigOptions(e) {
 }
 const bigOptionsLink = document.getElementById('bigOptions');
 clickAndKeypress(bigOptionsLink, bigOptions);
-if (location.hash != '#popup') {
+if (location.hash != '#popup')
 	bigOptionsLink.className = 'hidden';
-}
 
 
 
@@ -89,13 +119,19 @@ function codeChanged(e) {
 
 // Add site
 async function addSite(e) {
+	// Return unless enter was pressed
 	if (e.key != 'Enter' || !e.target.value)
 		return;
 
+	// Get the key for the URL
 	const url = e.target.value.toLowerCase();
 	e.target.value = '';
 	const key = `css:${url}`;
-	await chrome.storage.local.set({[key]: ''});
+
+	// Forget URL being edited
+	prevUrlEditing = null;
+
+	// Load the UI
 	loadSites(key);
 }
 document.getElementById('addSite').onkeydown = addSite;
@@ -130,11 +166,19 @@ async function loadSites(keyToSelect=null) {
 	const rules = await chrome.storage.local.get();
 	const removing = [];
 
+	// Add the current page
+	const addingPage = keyToSelect && !(keyToSelect in rules);
+	if (addingPage)
+		rules[keyToSelect] = '';
+
+	// Get the keys, which may already be sorted
+	const keys = addingPage ? Object.keys(rules).sort() : Object.keys(rules);
+
 	// Make fields for each rule
 	const container = document.getElementById('sites');
 	container.innerHTML = '';
-	for (const key in rules) {
-		// Remove unused rules
+	for (const key of keys) {
+		// Skip unused rules and mark for removal
 		if (key != keyToSelect && !rules[key]) {
 			removing.push(key);
 			continue;
@@ -173,10 +217,10 @@ async function loadSites(keyToSelect=null) {
 		}
 	}
 
+	// Remove unused keys
 	if (removing.length)
 		chrome.storage.local.remove(removing);
 }
-loadSites();
 
 // Focus site rules textarea
 function focusSiteRules(e) {
@@ -186,3 +230,31 @@ function focusSiteRules(e) {
 	const textarea = e.target.getElementsByTagName('textarea')[0];
 	textarea.focus();
 }
+
+
+
+
+let prevUrlEditing = null;
+async function main() {
+	// Get current URL being edited
+	let currUrlEditing = (await chrome.storage.local.get('url')).url;
+
+	// Skip if the URL being edited is the same
+	if (currUrlEditing && currUrlEditing == prevUrlEditing)
+		return;
+	prevUrlEditing = currUrlEditing;
+
+	// Collapse all for the popup
+	if (location.hash == '#popup')
+		currUrlEditing = null;
+
+	// Load the CSS for the sites
+	loadSites(currUrlEditing);
+
+	// Forget the URL being edited
+	window.onbeforeunload = () => {
+		chrome.storage.local.remove('url');
+	};
+}
+main();
+window.onfocus = main;

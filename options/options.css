@@ -225,4 +225,5 @@ textarea {
 	resize: none;
 	padding: calc(var(--margin) * 0.75) var(--margin);
 	tab-size: 2;
+	display: block;
 }
