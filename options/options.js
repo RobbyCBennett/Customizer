@@ -118,14 +118,15 @@ function codeChanged(e) {
 // Site rules
 
 // Add site
+const addSiteField = document.getElementById('addSiteField');
 async function addSite(e) {
-	// Return unless enter was pressed
-	if (e.key != 'Enter' || !e.target.value)
+	// Return for keys besides enter and if there's no value
+	if (e.key && e.key != 'Enter' || !addSiteField.value)
 		return;
 
 	// Get the key for the URL
-	const url = e.target.value.toLowerCase();
-	e.target.value = '';
+	const url = addSiteField.value.toLowerCase();
+	addSiteField.value = '';
 	const key = `css:${url}`;
 
 	// Forget URL being edited
@@ -134,7 +135,8 @@ async function addSite(e) {
 	// Load the UI
 	loadSites(key);
 }
-document.getElementById('addSite').onkeydown = addSite;
+addSiteField.onkeydown = addSite;
+document.getElementById('addSiteButton').onclick = addSite;
 
 // Search sites
 function searchSites(e) {
