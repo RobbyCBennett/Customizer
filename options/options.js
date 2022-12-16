@@ -57,7 +57,7 @@ function bigOptions(e) {
 const bigOptionsLink = document.getElementById('bigOptions');
 clickAndKeypress(bigOptionsLink, bigOptions);
 if (location.hash != '#popup')
-	bigOptionsLink.className = 'hidden';
+	bigOptionsLink.remove();
 
 
 

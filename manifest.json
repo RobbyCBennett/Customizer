@@ -38,8 +38,11 @@
 		"bigOptions": {
 			"description": "Big options page"
 		},
-		"editThisSite": {
-			"description": "Edit this site"
+		"bigOptionsEditSite": {
+			"description": "Big options page: edit site",
+			"suggested_key": {
+				"default": "Alt+Shift+C"
+			}
 		}
 	}
 }

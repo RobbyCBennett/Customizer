@@ -17,7 +17,7 @@ async function getCssBaseUrl() {
 	return `css:${baseUrl[2]}`;
 }
 
-async function editThisSite() {
+async function bigOptionsEditSite() {
 	const cssBaseUrl = await getCssBaseUrl();
 
 	// Remember the URL currently being edited
@@ -30,7 +30,7 @@ async function editThisSite() {
 
 const commands = {
 	bigOptions: chrome.runtime.openOptionsPage,
-	editThisSite: editThisSite,
+	bigOptionsEditSite: bigOptionsEditSite,
 };
 
 chrome.commands.onCommand.addListener(command => {
