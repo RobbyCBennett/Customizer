@@ -13,8 +13,8 @@ async function applyCSS() {
 	}
 
 	// Get rules
-	const rules = await chrome.storage.local.get(keys);
-	if (!rules) return;
+	const rules = await chrome.storage.sync.get(keys);
+	if (!Object.keys(rules)) return;
 
 	// Append stylesheet to body
 	const newStyleSheet = document.createElement('style');

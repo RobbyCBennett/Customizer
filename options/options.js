@@ -25,10 +25,10 @@ async function keyboardShortcuts(e) {
 	const newWindow = e.shiftKey && ! e.ctrlKey && ! middleClick;
 
 	// New window
-	if (newWindow) {
+	if (newWindow)
 		// Create tab in new window
 		chrome.windows.create({ url: url });
-	}
+
 	// Same window
 	else {
 		// Query the current tab in order to create a new adjacent tab
@@ -47,17 +47,55 @@ clickAndKeypress(document.getElementById('keyboardShortcuts'), keyboardShortcuts
 // Link: Big options page
 function bigOptions(e) {
 	// Skip other keys or right click
-	if ((e.keyCode && e.keyCode != ENTER) || e.button == 2) {
+	if ((e.keyCode && e.keyCode != ENTER) || e.button == 2)
 		return;
-	}
 
 	// Create tab
 	chrome.runtime.openOptionsPage();
 }
 const bigOptionsLink = document.getElementById('bigOptions');
-clickAndKeypress(bigOptionsLink, bigOptions);
-if (location.hash != '#popup')
+if (location.hash == '#popup')
+	clickAndKeypress(bigOptionsLink, bigOptions);
+else
 	bigOptionsLink.remove();
+
+
+
+// Options
+
+// Save changed option
+let autoSaveTimestamp = 0;
+let optionsToSet      = {};
+let optionsToRemove   = {};
+function saveOption(key, value, autoSaveDelay=0) {
+	// Start timestamp
+	autoSaveTimestamp = Date.now();
+
+	// Remember all the options to set/remove
+	if (value) {
+		optionsToSet[key] = value;
+		delete optionsToRemove[key];
+	}
+	else {
+		optionsToRemove[key] = true;
+		delete optionsToSet[key];
+	}
+
+	// Wait a bit and see if the user stops
+	setTimeout(() => {
+		// Return if the user didn't stop
+		if (autoSaveTimestamp + autoSaveDelay > Date.now())
+			return;
+
+		// Set/remove options
+		chrome.storage.sync.set(optionsToSet);
+		chrome.storage.sync.remove(Object.keys(optionsToRemove));
+
+		// Forget options to set/remove
+		optionsToSet    = {};
+		optionsToRemove = {};
+	}, autoSaveDelay);
+}
 
 
 
@@ -109,9 +147,34 @@ function codeChanged(e) {
 	else if (e.inputType == 'insertText' && e.data == '{')
 		insertText('}', field, -1);
 
-	saveSite(e);
+	// Set/delete value with a delay
+	const key   = field.dataset.key;
+	const value = field.value;
+	saveOption(key, value, 250);
 }
 
+
+
+// URL
+
+// Get the current URL
+const baseUrlPattern = /^https?:\/\/(www.)?(.+?[^\/:])(?=[?\/]|$)/;
+async function getBaseUrl() {
+	// Get current tab
+	const currentTab = (await chrome.tabs.query({
+		active: true,
+		currentWindow: true
+	})).pop();
+	if (! currentTab)
+		return;
+
+	// Get the base URL
+	const baseUrl = currentTab.url.match(baseUrlPattern);
+	if (! baseUrl)
+		return;
+
+	return baseUrl[2];
+}
 
 
 
@@ -128,9 +191,6 @@ async function addSite(e) {
 	const url = addSiteField.value.toLowerCase();
 	addSiteField.value = '';
 	const key = `css:${url}`;
-
-	// Forget URL being edited
-	prevUrlEditing = null;
 
 	// Load the UI
 	loadSites(key);
@@ -151,22 +211,10 @@ function searchSites(e) {
 }
 document.getElementById('searchSites').oninput = searchSites;
 
-// Save site rule
-function saveSite(e) {
-	const key = e.target.dataset.key;
-	const rule = e.target.value;
-
-	if (rule)
-		chrome.storage.local.set({[key]: rule});
-	else
-		chrome.storage.local.remove(key);
-}
-
 // Load site rules
 async function loadSites(keyToAdd=null) {
 	// Get all rules
-	const rules = await chrome.storage.local.get();
-	const removing = [];
+	const rules = await chrome.storage.sync.get();
 
 	// Add the current page
 	const addingPage = keyToAdd && !(keyToAdd in rules);
@@ -182,7 +230,7 @@ async function loadSites(keyToAdd=null) {
 	for (const key of keys) {
 		// Skip unused rules and mark for removal
 		if (key != keyToAdd && !rules[key]) {
-			removing.push(key);
+			// optionsToRemove[key] = true;
 			continue;
 		}
 
@@ -216,10 +264,6 @@ async function loadSites(keyToAdd=null) {
 		if (key == keyToAdd)
 			details.open = true;
 	}
-
-	// Remove unused keys
-	if (removing.length)
-		chrome.storage.local.remove(removing);
 }
 
 // Focus site rules textarea
@@ -231,57 +275,45 @@ function focusSiteRules(e) {
 	textarea.focus();
 }
 
-
-
-// URL
-
-const baseUrlPattern = /^https?:\/\/(www.)?(.+?[^\/:])(?=[?\/]|$)/;
-async function getBaseUrl() {
-	// Get current tab
-	const currentTab = (await chrome.tabs.query({
-		active: true,
-		currentWindow: true
-	})).pop();
-	if (! currentTab)
-		return;
-
-	// Get the base URL
-	const baseUrl = currentTab.url.match(baseUrlPattern);
-	if (! baseUrl)
-		return;
-
-	return baseUrl[2];
-}
-
-
-
-// Main
-
-let prevUrlEditing = null;
-async function main() {
+// Reload the site CSS rules
+let firstTimeLoading = true;
+async function reloadSiteRules() {
 	// Get current URL being edited
-	let currUrlEditing;
-	// Popup
+	let key;
+	// In the popup
 	if (location.hash == '#popup') {
 		const baseUrl = await getBaseUrl();
-		currUrlEditing = baseUrl ? `css:${baseUrl}` : null;
+		key = baseUrl ? `css:${baseUrl}` : null;
 	}
-	// Not popup
+	// Not in the popup
 	else
-		currUrlEditing = (await chrome.storage.local.get('url')).url;
+		key = (await chrome.storage.local.get('url')).url;
 
-	// Skip if the URL being edited is the same
-	if (currUrlEditing && currUrlEditing == prevUrlEditing)
-		return;
-	prevUrlEditing = currUrlEditing;
-
-	// Load the UI to edit CSS for the sites
-	loadSites(currUrlEditing);
+	// Only load sites at start
+	if (firstTimeLoading || key)
+		loadSites(key);
 
 	// Forget the URL being edited
-	window.onbeforeunload = () => {
-		chrome.storage.local.remove('url');
-	};
+	chrome.storage.local.remove('url');
+
+	firstTimeLoading = false;
 }
-main();
-window.onfocus = main;
+reloadSiteRules();
+window.onfocus = reloadSiteRules;
+
+// Save options on window closed
+function optionsOnClose() {
+	// Forget the URL being edited
+	chrome.storage.local.remove('url');
+
+	// Skip if there are no options to set
+	if (!Object.keys(optionsToSet).length && !Object.keys(optionsToRemove).length)
+		return null;
+
+	// Sync options
+	return Promise.all([
+		chrome.storage.sync.set(optionsToSet),
+		chrome.storage.sync.remove(Object.keys(optionsToRemove)),
+	]);
+}
+window.onbeforeunload = optionsOnClose;
