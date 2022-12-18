@@ -114,42 +114,51 @@ function insertText(text, field=null, move=0) {
 }
 
 // Textarea code changed: auto indent
-const indent = /^[\t ]/;
-const block = /{$/;
+const indentAtStart     = /^[\t ]/;      // Tab/space at start
+const blockStartAtEnd   = /{$/;          // Block starting with { at end
+const notPrintableAscii = /[^\t\n -~]/g; // ASCII characters 9, 10, 32-126
 let enterFromUser = true;
 function codeChanged(e) {
-	const field = e.target;
+	const textarea = e.target;
+
+	// console.log(`${new Blob([value]).size} / ${chrome.storage.sync.QUOTA_BYTES_PER_ITEM}`);
+
+	// Remove characters not allowed
+	if (notPrintableAscii.test(textarea.value)) {
+		textarea.value = textarea.value.replaceAll(notPrintableAscii, '');
+		return;
+	}
 
 	// Enter pressed
 	if (e.inputType == 'insertLineBreak' || e.inputType == 'insertText' && !e.data) {
 		if (enterFromUser) {
 			// Get text of previous line
-			const cursor = field.selectionStart;
-			const untilCursor = field.value.slice(0, cursor);
-			const afterCursor = field.value.slice(cursor, cursor+1)
+			const cursor = textarea.selectionStart;
+			const untilCursor = textarea.value.slice(0, cursor);
+			const afterCursor = textarea.value.slice(cursor, cursor+1)
 			const prevLine = untilCursor.match(/(.*)\n$/)[1];
 
 			// See if } should be on a new line
 			if (afterCursor == '}') {
 				insertText('\t');
 				enterFromUser = false;
-				insertText('\n', field, -1);
+				insertText('\n', textarea, -1);
 				enterFromUser = true;
 			}
 
 			// See if the new line should be indented
-			else if (indent.test(prevLine) || block.test(prevLine))
+			else if (indentAtStart.test(prevLine) || blockStartAtEnd.test(prevLine))
 				insertText('\t');
 		}
 	}
 
 	// { pressed
 	else if (e.inputType == 'insertText' && e.data == '{')
-		insertText('}', field, -1);
+		insertText('}', textarea, -1);
 
 	// Set/delete value with a delay
-	const key   = field.dataset.key;
-	const value = field.value;
+	const key   = textarea.dataset.key;
+	const value = textarea.value;
 	saveOption(key, value, 250);
 }
 
@@ -226,6 +235,8 @@ async function loadSites(keyToAdd=null) {
 
 	// Make fields for each rule
 	const container = document.getElementById('sites');
+	const maxLengthPadding = 14;
+	const maxLength = chrome.storage.sync.QUOTA_BYTES_PER_ITEM - maxLengthPadding;
 	container.innerHTML = '';
 	for (const key of keys) {
 		// Skip unused rules and mark for removal
@@ -258,6 +269,7 @@ async function loadSites(keyToAdd=null) {
 		textarea.dataset.key = key;
 		textarea.value = rules[key];
 		textarea.oninput = codeChanged;
+		textarea.maxLength = maxLength;
 		details.appendChild(textarea);
 
 		// Open details and focus on textarea
