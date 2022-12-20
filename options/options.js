@@ -254,6 +254,12 @@ async function loadSites(keyToAdd=null) {
 	// Get all rules
 	const rules = await chrome.storage.sync.get();
 
+	// Skip and warning if if there's not enough space
+	if (Object.keys(rules).length + (keyToAdd ? 1 : 0) >= chrome.storage.sync.MAX_ITEMS) {
+		keyToAdd = null;
+		alert(`Only ${chrome.storage.sync.MAX_ITEMS} entries allowed by the browser`);
+	}
+
 	// Add the current page
 	const addingPage = keyToAdd && !(keyToAdd in rules);
 	if (addingPage)
@@ -266,11 +272,9 @@ async function loadSites(keyToAdd=null) {
 	const container = document.getElementById('sites');
 	container.innerHTML = '';
 	for (const key of keys) {
-		// Skip unused rules and mark for removal
-		if (key != keyToAdd && !rules[key]) {
-			// optionsToRemove[key] = true;
+		// Skip unused rules
+		if (key != keyToAdd && !rules[key])
 			continue;
-		}
 
 		// Get URL
 		const match = key.match(/^css:(.*)/);
