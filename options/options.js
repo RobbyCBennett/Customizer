@@ -154,6 +154,7 @@ function codeChanged(e) {
 	if (notPrintableAscii.test(textarea.value))
 		textarea.value = textarea.value.replaceAll(notPrintableAscii, '');
 
+	// Asynchronously adjust maxlength according to bytes
 	updateMaxlength(textarea);
 
 	// Enter pressed
@@ -163,7 +164,10 @@ function codeChanged(e) {
 			const cursor = textarea.selectionStart;
 			const untilCursor = textarea.value.slice(0, cursor);
 			const afterCursor = textarea.value.slice(cursor, cursor+1)
-			const prevLine = untilCursor.match(/(.*)\n$/)[1];
+			const prevLineMatch = untilCursor.match(/(.*)\n$/);
+			if (! prevLineMatch) return;
+			const prevLine = prevLineMatch[1];
+			untilCursor.match(/(.*)\n$/)
 
 			// See if } should be on a new line
 			if (afterCursor == '}') {
