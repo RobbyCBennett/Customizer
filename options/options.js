@@ -113,7 +113,36 @@ function insertText(text, field=null, move=0) {
 	}
 }
 
-// Textarea code changed: auto indent
+// Textarea code changed: update max length because of variable-byte characters
+const twoBytes = /[\t\n"\\]/;
+async function updateMaxlength(textarea) {
+	const maxBytes = chrome.storage.sync.QUOTA_BYTES_PER_ITEM;
+
+	// Count the bytes
+	const padding = 2;
+	let i, bytes = textarea.dataset.key.length + padding;
+	for (i = 0; i < textarea.value.length; i++) {
+		// Increment the bytes
+		if (twoBytes.test(textarea.value[i]))
+			bytes += 2;
+		else if (textarea.value[i] == '<')
+			bytes += 6;
+		else
+			bytes += 1;
+
+		// Not enough space
+		if (bytes > maxBytes) {
+			textarea.value = textarea.value.slice(0, i);
+			textarea.maxLength = i - 1;
+			return;
+		}
+	}
+
+	// Enough space
+	textarea.maxLength = i + maxBytes - bytes;
+}
+
+// Textarea code changed: filter chars, auto indent, and save
 const indentAtStart     = /^[\t ]/;      // Tab/space at start
 const blockStartAtEnd   = /{$/;          // Block starting with { at end
 const notPrintableAscii = /[^\t\n -~]/g; // ASCII characters 9, 10, 32-126
@@ -121,13 +150,11 @@ let enterFromUser = true;
 function codeChanged(e) {
 	const textarea = e.target;
 
-	// console.log(`${new Blob([value]).size} / ${chrome.storage.sync.QUOTA_BYTES_PER_ITEM}`);
-
 	// Remove characters not allowed
-	if (notPrintableAscii.test(textarea.value)) {
+	if (notPrintableAscii.test(textarea.value))
 		textarea.value = textarea.value.replaceAll(notPrintableAscii, '');
-		return;
-	}
+
+	updateMaxlength(textarea);
 
 	// Enter pressed
 	if (e.inputType == 'insertLineBreak' || e.inputType == 'insertText' && !e.data) {
@@ -157,9 +184,7 @@ function codeChanged(e) {
 		insertText('}', textarea, -1);
 
 	// Set/delete value with a delay
-	const key   = textarea.dataset.key;
-	const value = textarea.value;
-	saveOption(key, value, 250);
+	saveOption(textarea.dataset.key, textarea.value, 250);
 }
 
 
@@ -235,8 +260,6 @@ async function loadSites(keyToAdd=null) {
 
 	// Make fields for each rule
 	const container = document.getElementById('sites');
-	const maxLengthPadding = 14;
-	const maxLength = chrome.storage.sync.QUOTA_BYTES_PER_ITEM - maxLengthPadding;
 	container.innerHTML = '';
 	for (const key of keys) {
 		// Skip unused rules and mark for removal
@@ -269,7 +292,8 @@ async function loadSites(keyToAdd=null) {
 		textarea.dataset.key = key;
 		textarea.value = rules[key];
 		textarea.oninput = codeChanged;
-		textarea.maxLength = maxLength;
+		textarea.spellcheck = false;
+		updateMaxlength(textarea);
 		details.appendChild(textarea);
 
 		// Open details and focus on textarea
