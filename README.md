@@ -2,7 +2,7 @@
 
 ## Install
 
-[Chrome Web Store](https://chrome.google.com/webstore/detail/swift-tab-switcher/pdncaffclfaalcafoebejjbefknohkjg)
+[Chrome Web Store](https://chrome.google.com/webstore/detail/organizer/nkhdafpofippbfhihgnpbnmmgcflegdf)
 
 ## Introduction
 
@@ -12,9 +12,6 @@ Add custom CSS to one or many sites. Sometimes websites don't look the way you w
 
 Edit CSS
 * View & edit styling for one page or many
-
-Options
-* CSS for one or many sites
 
 Storage Sync
 * Options saved for use on any computer
