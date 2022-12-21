@@ -14,7 +14,7 @@ async function applyCSS() {
 
 	// Get sheets
 	const sheets = await chrome.storage.sync.get(keys);
-	if (!Object.keys(sheets)) return;
+	if (Object.keys(sheets).length == 0) return;
 
 	// Append stylesheet to body
 	const style = document.createElement('style');
