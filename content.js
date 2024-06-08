@@ -1,5 +1,5 @@
 async function applyCSS() {
-	const hostname = window.location.hostname.replace(/^www\./, '');
+	const hostname = window.location.host.replace(/^www\./, '');
 	const hostnameParts = hostname.split('.');
 
 	// Get keys for sheets
@@ -12,9 +12,10 @@ async function applyCSS() {
 		keys.push(`css:${wildcardParts.join('.')}`);
 	}
 
-	// Get sheets
+	// Get sheets or stop
 	const sheets = await chrome.storage.sync.get(keys);
-	if (Object.keys(sheets).length == 0) return;
+	if (Object.keys(sheets).length == 0)
+		return;
 
 	// Append stylesheet to body
 	const style = document.createElement('style');
