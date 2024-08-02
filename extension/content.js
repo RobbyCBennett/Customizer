@@ -1,4 +1,26 @@
-async function applyCSS() {
+// @ts-check
+'use strict';
+
+
+/**
+ * Create a style element for HTML pages or event XML pages
+ * @returns HTMLStyleElement
+ */
+function createStyleElement()
+{
+	const namespace = document.documentElement.getAttribute('xmlns');
+	if (typeof namespace === 'string')
+		return document.createElementNS(namespace, 'style');
+	else
+		return document.createElement('style');
+}
+
+
+/**
+ * Main function of a tab
+ */
+async function main()
+{
 	const hostname = window.location.host.replace(/^www\./, '');
 	const hostnameParts = hostname.split('.');
 
@@ -18,8 +40,10 @@ async function applyCSS() {
 		return;
 
 	// Append stylesheet to body
-	const style = document.createElement('style');
+	const style = createStyleElement();
 	document.head.appendChild(style);
 	style.innerHTML = Object.values(sheets).join('');
 }
-applyCSS();
+
+
+main();
