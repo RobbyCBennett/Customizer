@@ -4,12 +4,13 @@
 
 /**
  * Create a style element for HTML pages or event XML pages
- * @returns HTMLStyleElement
+ * @returns {HTMLStyleElement}
  */
 function createStyleElement()
 {
 	const namespace = document.documentElement.getAttribute('xmlns');
 	if (typeof namespace === 'string')
+		// @ts-ignore
 		return document.createElementNS(namespace, 'style');
 	else
 		return document.createElement('style');
@@ -39,7 +40,7 @@ async function main()
 	if (Object.keys(sheets).length == 0)
 		return;
 
-	// Append stylesheet to body
+	// Append stylesheet to head
 	const style = createStyleElement();
 	document.head.appendChild(style);
 	style.innerHTML = Object.values(sheets).join('');

@@ -3,40 +3,43 @@
 
 
 /**
- * Possibly get the base URL of the current tab
+ * Try to get the URL of the tab and remember it for the options
+ * @param {chrome.tabs.Tab} tab
  */
-async function getCssBaseUrl()
+async function rememberURLForOptions(tab)
 {
-	// Get current tab
-	const currentTab = (await chrome.tabs.query({
-		active: true,
-		currentWindow: true
-	})).pop();
-	if (!currentTab || !currentTab.url)
-		return null;
+	// Fail if no tab URL
+	if (!tab.url)
+		return;
 
-	// Get the base URL
+	// Get the base URL or fail
 	const baseUrlPattern = /^https?:\/\/(www.)?(.+?[^\/:])(?=[?\/]|$)/;
-	const baseUrl = currentTab.url.match(baseUrlPattern);
+	const baseUrl = tab.url.match(baseUrlPattern);
 	if (!baseUrl)
-		return null;
+		return;
 
-	// Append 'css:' to the beginning
-	return `css:${baseUrl[2]}`;
+	// Remember the URL
+	await chrome.storage.local.set({ url: `css:${baseUrl[2]}` });
 }
 
 
 /**
- * Handle the 'bigOptionsEditSite' command
+ * Handle a command like clicking a button or a keyboard shortcut
+ * @param {string} command
+ * @param {chrome.tabs.Tab} tab
  */
-async function bigOptionsEditSite()
+async function handleCommand(command, tab)
 {
-	// Remember the URL currently being edited
-	const cssBaseUrl = await getCssBaseUrl();
-	if (cssBaseUrl)
-		await chrome.storage.local.set({ url: cssBaseUrl });
+	switch (command) {
+		case 'bigOptions':
+			break;
+		case 'bigOptionsEditSite':
+			await rememberURLForOptions(tab);
+			break;
+		default:
+			return;
+	}
 
-	// Open options pagee
 	chrome.runtime.openOptionsPage();
 }
 
@@ -46,14 +49,7 @@ async function bigOptionsEditSite()
  */
 function main()
 {
-	// Handle the commands
-	const commands = {
-		bigOptions: chrome.runtime.openOptionsPage,
-		bigOptionsEditSite: bigOptionsEditSite,
-	};
-	chrome.commands.onCommand.addListener(command => {
-		commands[command]();
-	});
+	chrome.commands.onCommand.addListener(handleCommand);
 }
 
 
