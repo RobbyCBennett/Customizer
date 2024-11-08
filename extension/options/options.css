@@ -35,16 +35,18 @@
 }
 @media (prefers-color-scheme: dark) {
 	:root {
+		color-scheme: dark;
+
 		/* Colors */
 		--text: #EEEEEE;
-		--bg:   #292A2D;
+		--bg:   #16161A;
 
 		--color:    #1F3563;
 		--colorDim: #142E66;
 
-		--option: rgba(0, 0, 0, 10%);
-		--hover:  rgba(127, 127, 127, 10%);
-		--active: rgba(127, 127, 127, 20%);
+		--option: #0f0f12;
+		--hover:  #1C1C21;
+		--active: #232329;
 
 		--input: #1E1F21;
 
@@ -160,6 +162,12 @@ header img {
 }
 .option:first-child {
 	margin-top: var(--margin);
+}
+p.option {
+	cursor: default;
+}
+p.option:hover, p.option:active {
+	background-color: var(--option);
 }
 
 
