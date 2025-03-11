@@ -22,6 +22,10 @@ function createStyleElement()
  */
 async function main()
 {
+	// Skip SVG
+	if (document.documentElement.tagName === 'svg')
+		return;
+
 	const hostname = window.location.host.replace(/^www\./, '');
 	const hostnameParts = hostname.split('.');
 
